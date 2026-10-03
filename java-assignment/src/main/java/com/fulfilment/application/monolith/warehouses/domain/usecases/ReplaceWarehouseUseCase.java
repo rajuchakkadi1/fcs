@@ -16,8 +16,9 @@ public class ReplaceWarehouseUseCase implements ReplaceWarehouseOperation {
 
   @Override
   public void replace(Warehouse newWarehouse) {
-    // TODO implement this method
-
+    if (newWarehouse == null) {
+      throw new IllegalArgumentException("Warehouse payload is required.");
+    }
     warehouseStore.update(newWarehouse);
   }
 }

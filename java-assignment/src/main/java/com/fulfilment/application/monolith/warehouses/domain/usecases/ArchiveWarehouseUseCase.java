@@ -16,8 +16,9 @@ public class ArchiveWarehouseUseCase implements ArchiveWarehouseOperation {
 
   @Override
   public void archive(Warehouse warehouse) {
-    // TODO implement this method
-
+    if (warehouse == null) {
+      throw new IllegalArgumentException("Warehouse payload is required.");
+    }
     warehouseStore.update(warehouse);
   }
 }
