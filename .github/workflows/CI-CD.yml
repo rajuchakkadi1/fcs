@@ -1,10 +1,13 @@
-name: CI/CD
+name: CI/CD Pipeline
 
 on:
   push:
     branches: [ "main" ]
-permissions: 
+
+permissions:
   contents: read
+  packages: write
+  pull-requests: write
 
 jobs:
   test:
@@ -13,30 +16,58 @@ jobs:
       run:
         working-directory: java-assignment
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-java@v5
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-          cach: maven
+          cache: maven
           cache-dependency-path: java-assignment/pom.xml
-      - name: Run tests
-        run: ./mvnw -B -ntp verify
+
+      # Dynamically inject JaCoCo execution without altering pom.xml
+      - name: Run tests with JaCoCo CLI Injection
+        run: |
+          ./mvnw -B -ntp \
+            org.jacoco:jacoco-maven-plugin:0.8.11:prepare-agent \
+            test \
+            org.jacoco:jacoco-maven-plugin:0.8.11:report
+
+      # Display summary on GitHub Job Summary page
+      - name: Display Coverage Summary in Job Summary
+        uses: madrapps/jacoco-report@v1.6.1
+        if: always()
+        with:
+          paths: ${{ github.workspace }}/java-assignment/target/site/jacoco/jacoco.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          min-coverage-overall: 80
+          min-coverage-changed-files: 80
+          title: "Code Coverage Summary Report"
+
+      - name: Upload JaCoCo HTML Report Artifact
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: jacoco-coverage-report
+          path: java-assignment/target/site/jacoco/
+
   publish-image:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: test
     runs-on: ubuntu-latest
-    permissions: 
+    permissions:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-java@v5
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: 17
-          cach: maven
+          java-version: '17'
+          cache: maven
           cache-dependency-path: java-assignment/pom.xml
+
       - name: Package application
         working-directory: java-assignment
         run: ./mvnw -B -ntp package -DskipTests
@@ -47,6 +78,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Prepare image metadata
         id: meta
         uses: docker/metadata-action@v5
@@ -55,6 +87,7 @@ jobs:
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=sha,prefix=
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v6
         with:
@@ -63,5 +96,3 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-
-      
