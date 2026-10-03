@@ -12,6 +12,7 @@
         <quarkus.platform.version>3.13.3</quarkus.platform.version>
         <surefire-plugin.version>3.1.2</surefire-plugin.version>
         <compiler-plugin.version>3.11.0</compiler-plugin.version>
+        <jacoco-plugin.version>0.8.11</jacoco-plugin.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <maven.compiler.release>17</maven.compiler.release>
@@ -60,7 +61,6 @@
             <artifactId>quarkus-openapi-generator-server</artifactId>
             <version>2.4.7</version>
         </dependency>
-
     </dependencies>
 
     <build>
@@ -70,14 +70,15 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>${compiler-plugin.version}</version>
                 <configuration>
-                    <source>11</source>
-                    <target>11</target>
+                    <source>17</source>
+                    <target>17</target>
                     <!-- the parameters=true option is critical so that RESTEasy works fine -->
                     <parameters>true</parameters>
                 </configuration>
             </plugin>
+
             <plugin>
-                <!-- you need this specific version to integrate with the other build helpers -->
+                <!-- Specific version needed to integrate with Quarkus test runners -->
                 <artifactId>maven-surefire-plugin</artifactId>
                 <version>${surefire-plugin.version}</version>
                 <configuration>
@@ -87,8 +88,51 @@
                     </systemPropertyVariables>
                 </configuration>
             </plugin>
+
+            <!-- JaCoCo Code Coverage Plugin Configuration -->
             <plugin>
-                <!-- This is what injects the magic Quarkus bytecode -->
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco-plugin.version}</version>
+                <executions>
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>report</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                    <execution>
+                        <id>check-coverage</id>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>BUNDLE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>INSTRUCTION</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.80</minimum>
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <!-- Injects Quarkus bytecode -->
                 <groupId>${quarkus.platform.group-id}</groupId>
                 <artifactId>quarkus-maven-plugin</artifactId>
                 <version>${quarkus.platform.version}</version>
@@ -107,7 +151,7 @@
 
     <profiles>
         <profile>
-            <!-- Optionally activate this profile to compile the demo into native! -->
+            <!-- Optionally activate this profile to compile into native! -->
             <id>native</id>
             <activation>
                 <property>
@@ -147,14 +191,13 @@
             <id>eclipse</id>
             <activation>
                 <property>
-                    <!-- This is a trick to have the profile automatically activated by Eclipse -->
+                    <!-- Automatically activated by Eclipse -->
                     <name>m2e.version</name>
                 </property>
             </activation>
             <build>
                 <pluginManagement>
                     <plugins>
-                        <!--This plugin's configuration is used to store Eclipse m2e settings only. It has no influence on the Maven build itself.-->
                         <plugin>
                             <groupId>org.eclipse.m2e</groupId>
                             <artifactId>lifecycle-mapping</artifactId>
@@ -165,12 +208,8 @@
                                         <pluginExecution>
                                             <pluginExecutionFilter>
                                                 <groupId>io.fabric8</groupId>
-                                                <artifactId>
-                                                    docker-maven-plugin
-                                                </artifactId>
-                                                <versionRange>
-                                                    [0.28.0,)
-                                                </versionRange>
+                                                <artifactId>docker-maven-plugin</artifactId>
+                                                <versionRange>[0.28.0,)</versionRange>
                                                 <goals>
                                                     <goal>start</goal>
                                                     <goal>stop</goal>
