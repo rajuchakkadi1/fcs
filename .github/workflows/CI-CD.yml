@@ -23,7 +23,7 @@ jobs:
       - name: Run tests
         run: ./mvnw -B -ntp verify
   publish-image:
-    if: github.event_name == 'push' && github.ref == 'ref/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: test
     runs-on: ubuntu-latest
     permissions: 
@@ -42,7 +42,7 @@ jobs:
         run: ./mvnw -B -ntp package -DskipTests
 
       - name: Log in to GHCR
-        uses: docker/login-action@v5
+        uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -50,6 +50,13 @@ jobs:
       - name: Prepare image metadata
         id: meta
         uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=sha,prefix=
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
         with:
           context: java-assignment
           file: java-assignment/src/main/docker/Dockerfile.jvm
