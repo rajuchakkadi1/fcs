@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v5
       - uses: actions/setup-java@v5
         with:
-          distribution: termium
+          distribution: temurin
           java-version: '17'
           cach: maven
           cache-dependency-path: java-assignment/pom.xml
