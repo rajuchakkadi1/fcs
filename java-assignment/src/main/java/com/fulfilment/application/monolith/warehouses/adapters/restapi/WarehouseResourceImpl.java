@@ -1,7 +1,5 @@
 package com.fulfilment.application.monolith.warehouses.adapters.restapi;
 
-import com.fulfilment.application.monolith.warehouses.adapters.database.DbWarehouse;
-import com.fulfilment.application.monolith.warehouses.adapters.database.WarehouseRepository;
 import com.fulfilment.application.monolith.warehouses.domain.models.Location;
 import com.fulfilment.application.monolith.warehouses.domain.ports.ArchiveWarehouseOperation;
 import com.fulfilment.application.monolith.warehouses.domain.ports.CreateWarehouseOperation;
@@ -23,9 +21,6 @@ public class WarehouseResourceImpl implements WarehouseResource {
 
 	@Inject
 	private WarehouseStore warehouseStore;
-
-	@Inject
-	private WarehouseRepository warehouseRepository;
 
 	@Inject
 	private CreateWarehouseOperation createWarehouseOperation;
@@ -67,26 +62,25 @@ public class WarehouseResourceImpl implements WarehouseResource {
 	}
 
 	@Override
-	public Warehouse getAWarehouseUnitByID(String id) {
-		var warehouseId = parseId(id);
-		DbWarehouse warehouse = warehouseRepository.findById(warehouseId);
+	public Warehouse getAWarehouseUnitByBusinessUnitCode(String businessUnitCode) {
+		var warehouse = warehouseStore.findByBusinessUnitCode(businessUnitCode);
 		if (warehouse == null) {
-			throw new WebApplicationException("Warehouse with id of " + id + " does not exist.", 404);
+			throw new WebApplicationException(
+					"Warehouse with business unit code " + businessUnitCode + " does not exist.", 404);
 		}
 		return toWarehouseResponse(warehouse);
 	}
 
 	@Override
-	public void archiveAWarehouseUnitByID(String id) {
-		var warehouseId = parseId(id);
-		DbWarehouse warehouse = warehouseRepository.findById(warehouseId);
+	public void archiveAWarehouseUnitByBusinessUnitCode(String businessUnitCode) {
+		var warehouse = warehouseStore.findByBusinessUnitCode(businessUnitCode);
 		if (warehouse == null) {
-			throw new WebApplicationException("Warehouse with id of " + id + " does not exist.", 404);
+			throw new WebApplicationException(
+					"Warehouse with business unit code " + businessUnitCode + " does not exist.", 404);
 		}
 
-		var archivedWarehouse = warehouse.toWarehouse();
-		archivedWarehouse.archivedAt = LocalDateTime.now();
-		archiveWarehouseOperation.archive(archivedWarehouse);
+		warehouse.archivedAt = LocalDateTime.now();
+		archiveWarehouseOperation.archive(warehouse);
 	}
 
 	@Override
@@ -107,12 +101,11 @@ public class WarehouseResourceImpl implements WarehouseResource {
 		validateReplacementFeasibility(currentWarehouse, data, replacementLocation);
 
 		currentWarehouse.archivedAt = LocalDateTime.now();
-		replaceWarehouseOperation.replace(currentWarehouse);
 
 		var replacement = toDomain(data);
 		replacement.createdAt = LocalDateTime.now();
 		replacement.archivedAt = null;
-		createWarehouseOperation.create(replacement);
+		replaceWarehouseOperation.replace(currentWarehouse, replacement);
 
 		return toWarehouseResponse(warehouseStore.findByBusinessUnitCode(normalizedBusinessUnitCode));
 	}
@@ -206,14 +199,6 @@ public class WarehouseResourceImpl implements WarehouseResource {
 		}
 	}
 
-	private Long parseId(String id) {
-		try {
-			return Long.parseLong(id);
-		} catch (NumberFormatException e) {
-			throw new WebApplicationException("Warehouse id is invalid: " + id, 400);
-		}
-	}
-
 	private Location resolveLocation(String locationIdentifier) {
 		try {
 			return locationResolver.resolveByIdentifier(locationIdentifier);
@@ -236,21 +221,12 @@ public class WarehouseResourceImpl implements WarehouseResource {
 	private Warehouse toWarehouseResponse(
 			com.fulfilment.application.monolith.warehouses.domain.models.Warehouse warehouse) {
 		var response = new Warehouse();
+		response.setId(warehouse.id == null ? null : String.valueOf(warehouse.id));
 		response.setBusinessUnitCode(warehouse.businessUnitCode);
 		response.setLocation(warehouse.location);
 		response.setCapacity(warehouse.capacity);
 		response.setStock(warehouse.stock);
 
-		return response;
-	}
-
-	private Warehouse toWarehouseResponse(DbWarehouse warehouse) {
-		var response = new Warehouse();
-		response.setId(String.valueOf(warehouse.id));
-		response.setBusinessUnitCode(warehouse.businessUnitCode);
-		response.setLocation(warehouse.location);
-		response.setCapacity(warehouse.capacity);
-		response.setStock(warehouse.stock);
 		return response;
 	}
 }

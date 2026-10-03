@@ -36,14 +36,14 @@ paths:
         '400':
           description: Invalid request parameters
 
-  /warehouse/{id}:
+  /warehouse/{businessUnitCode}:
     get:
-      summary: Get a warehouse unit by ID
+      summary: Get a warehouse unit by business unit code
       parameters:
-        - name: id
+        - name: businessUnitCode
           in: path
           required: true
-          description: ID of the warehouse unit to get
+          description: Business unit code of the warehouse unit to get
           schema:
             type: string
       responses:
@@ -56,12 +56,12 @@ paths:
         '404':
           description: Warehouse unit not found
     delete:
-      summary: Archive a warehouse unit by ID
+      summary: Archive a warehouse unit by business unit code
       parameters:
-        - name: id
+        - name: businessUnitCode
           in: path
           required: true
-          description: ID of the warehouse unit to archive
+          description: Business unit code of the warehouse unit to archive
           schema:
             type: string
       responses:

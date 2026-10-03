@@ -4,6 +4,7 @@ import com.fulfilment.application.monolith.warehouses.domain.models.Warehouse;
 import com.fulfilment.application.monolith.warehouses.domain.ports.ReplaceWarehouseOperation;
 import com.fulfilment.application.monolith.warehouses.domain.ports.WarehouseStore;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.transaction.Transactional;
 
 @ApplicationScoped
 public class ReplaceWarehouseUseCase implements ReplaceWarehouseOperation {
@@ -15,10 +16,12 @@ public class ReplaceWarehouseUseCase implements ReplaceWarehouseOperation {
   }
 
   @Override
-  public void replace(Warehouse newWarehouse) {
-    if (newWarehouse == null) {
-      throw new IllegalArgumentException("Warehouse payload is required.");
+  @Transactional
+  public void replace(Warehouse warehouseToArchive, Warehouse replacement) {
+    if (warehouseToArchive == null || replacement == null) {
+      throw new IllegalArgumentException("Both the warehouse being replaced and its replacement are required.");
     }
-    warehouseStore.update(newWarehouse);
+    warehouseStore.update(warehouseToArchive);
+    warehouseStore.create(replacement);
   }
 }
