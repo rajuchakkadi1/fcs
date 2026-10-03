@@ -50,12 +50,13 @@ jobs:
       - name: Prepare image metadata
         id: meta
         uses: docker/metadata-action@v5
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v6with:
+        with:
           images: ghcr.io/${{ github.repository }}
           tags: |
             type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
             type=sha,prefix=
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
         with:
           context: java-assignment
           file: java-assignment/src/main/docker/Dockerfile.jvm
